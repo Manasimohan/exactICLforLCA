@@ -151,13 +151,25 @@ for(i in  1 : nrow(Z)) {
     for(h in h_vals) {
       # changing the cluster of ith obervation from group g to group h
       Z <- update_Z_of_obs_i(Z, G, i, h)
+      # check if the groups have reduced and del Z[, col] of that group
+      Z1 <- check_group_reduction(Z, G)
+      
+      # if the group has reduced reduce G val
+      if(ncol(Z) != ncol(Z1)) {
+        G = G - 1
+      }
+      
       # calculating ICL value of the new combination
-      ICL_val_of_h <- icl_calc_func(alpha, beta, G, Y, Z)
+      ICL_val_of_h <- icl_calc_func(alpha, beta, G, Y, Z1)
       
       
       # reverting back to original combination
-      Z <- update_Z_of_obs_i(Z, G, i, g)
-
+      if(ncol(Z) != ncol(Z1)) {
+        G = G + 1
+      } else {
+        Z <- update_Z_of_obs_i(Z, G, i, g)
+      }
+      
       ICL_del <- ICL_val_of_h - ICL_max
       
       if(ICL_del > 0) {
@@ -167,6 +179,12 @@ for(i in  1 : nrow(Z)) {
     }
     # changing to the combination with highest ICL value
     Z <- update_Z_of_obs_i(Z, G, i, ICL_h)
+    Z <- check_group_reduction(Z, G)
+    # if the group has reduced reduce G val
+    if(ncol(Z) != ncol(Z1)) {
+      G = G - 1
+      i = 1
+    }
   }
 }
 

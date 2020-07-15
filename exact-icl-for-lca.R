@@ -88,6 +88,22 @@ update_Z_of_obs_i <- function(Z, G, i, t = 2) {
   Z
 }
 
+check_group_reduction <- function(Z, G) {
+  group_red <- FALSE
+  group_index <- -1
+  for ( i in 1 : G) {
+    if (length(Z[, i][Z[, i] == TRUE]) == 0) {
+      group_red <- TRUE
+      group_index <- i
+      break
+    }
+  }
+  if(group_red) {
+    Z <- Z[ , -c(group_index)]
+  }
+  Z
+}
+
 icl_calc_func(alpha, beta, G, Y, Z)
 
 for(i in  1 : nrow(Z)) {
@@ -95,12 +111,26 @@ for(i in  1 : nrow(Z)) {
   if (G == 2) {
     ICL_val1 <- icl_calc_func(alpha, beta, G, Y, Z)
     Z <- update_Z_of_obs_i(Z, G, i)
-    ICL_val2 <- icl_calc_func(alpha, beta, G, Y, Z)
+    
+    # check if the groups have reduced and del Z[, col] of that group
+    Z1 <- check_group_reduction(Z, G)
+    
+    # if the group has reduced reduce G val
+    if(ncol(Z) != ncol(Z1)) {
+      G = G - 1
+    }
+    
+    ICL_val2 <- icl_calc_func(alpha, beta, G, Y, Z1)
     if(ICL_val2 - ICL_val1 > 0) {
-      # DO nothing keep the changed Z
+      Z <- Z1 
+      i = 1
     } else {
       # revert it back to original
-      Z <- update_Z_of_obs_i(Z, G, i)
+      if(ncol(Z) != ncol(Z1)) {
+        G = G + 1
+      } else {
+        Z <- update_Z_of_obs_i(Z, G, i)
+      }
     }
   } else {
     # original ICL value without any changes
@@ -117,14 +147,17 @@ for(i in  1 : nrow(Z)) {
     
     ICL_max <- ICL_val
     ICL_h <- g
+    
     for(h in h_vals) {
       # changing the cluster of ith obervation from group g to group h
       Z <- update_Z_of_obs_i(Z, G, i, h)
       # calculating ICL value of the new combination
       ICL_val_of_h <- icl_calc_func(alpha, beta, G, Y, Z)
+      
+      
       # reverting back to original combination
       Z <- update_Z_of_obs_i(Z, G, i, g)
-      
+
       ICL_del <- ICL_val_of_h - ICL_max
       
       if(ICL_del > 0) {
@@ -140,3 +173,4 @@ for(i in  1 : nrow(Z)) {
 ICL_val_new <- icl_calc_func(alpha, beta, G, Y, Z)
 ICL_val_new
 View(Z)
+length(Z[, 4][Z[, 4] == TRUE])

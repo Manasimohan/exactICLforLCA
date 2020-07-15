@@ -113,25 +113,12 @@ while(i <= nrow(Z)) {
     ICL_val1 <- icl_calc_func(alpha, beta, G, Y, Z)
     Z <- update_Z_of_obs_i(Z, G, i)
     
-    # check if the groups have reduced and del Z[, col] of that group
-    Z1 <- check_group_reduction(Z, G)
-    
-    # if the group has reduced reduce G val
-    if(ncol(Z) != ncol(Z1)) {
-      G <- G - 1
-    }
-    
-    ICL_val2 <- icl_calc_func(alpha, beta, G, Y, Z1)
+    ICL_val2 <- icl_calc_func(alpha, beta, G, Y, Z)
     if(ICL_val2 - ICL_val1 > 0) {
-      Z <- Z1 
-      i <- 1
+      # DO nothing keep the changed Z
     } else {
       # revert it back to original
-      if(ncol(Z) != ncol(Z1)) {
-        G <- G + 1
-      } else {
-        Z <- update_Z_of_obs_i(Z, G, i)
-      }
+      Z <- update_Z_of_obs_i(Z, G, i)
     }
   } else {
     # original ICL value without any changes

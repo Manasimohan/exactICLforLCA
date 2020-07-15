@@ -192,11 +192,13 @@ while(i <= nrow(Z)) {
     }
   }
   i <- i + 1
+  print(i)
+  print(G)
 }
 
 ICL_val_new <- icl_calc_func(alpha, beta, G, Y, Z)
 ICL_val_new
-View(Z)
-length(Z[, 4][Z[, 4] == TRUE])
+#View(Z)
+#length(Z[, 4][Z[, 4] == TRUE])
 G
 ncol(Z)

@@ -106,9 +106,10 @@ check_group_reduction <- function(Z, G) {
 
 icl_calc_func(alpha, beta, G, Y, Z)
 
-for(i in  1 : nrow(Z)) {
-  
-  if (G == 2) {
+i <- 1
+while(i <= nrow(Z)) {
+
+    if (G == 2) {
     ICL_val1 <- icl_calc_func(alpha, beta, G, Y, Z)
     Z <- update_Z_of_obs_i(Z, G, i)
     
@@ -117,17 +118,17 @@ for(i in  1 : nrow(Z)) {
     
     # if the group has reduced reduce G val
     if(ncol(Z) != ncol(Z1)) {
-      G = G - 1
+      G <- G - 1
     }
     
     ICL_val2 <- icl_calc_func(alpha, beta, G, Y, Z1)
     if(ICL_val2 - ICL_val1 > 0) {
       Z <- Z1 
-      i = 1
+      i <- 1
     } else {
       # revert it back to original
       if(ncol(Z) != ncol(Z1)) {
-        G = G + 1
+        G <- G + 1
       } else {
         Z <- update_Z_of_obs_i(Z, G, i)
       }
@@ -156,16 +157,15 @@ for(i in  1 : nrow(Z)) {
       
       # if the group has reduced reduce G val
       if(ncol(Z) != ncol(Z1)) {
-        G = G - 1
+        G <- G - 1
       }
       
       # calculating ICL value of the new combination
       ICL_val_of_h <- icl_calc_func(alpha, beta, G, Y, Z1)
       
-      
       # reverting back to original combination
       if(ncol(Z) != ncol(Z1)) {
-        G = G + 1
+        G <- G + 1
       } else {
         Z <- update_Z_of_obs_i(Z, G, i, g)
       }
@@ -177,18 +177,26 @@ for(i in  1 : nrow(Z)) {
         ICL_h <- h
       }
     }
+    group_reduced <- FALSE
+    # if the group has reduced reduce G val
+    if(ncol(Z) != ncol(Z1)) {
+      group_reduced <- TRUE
+    }
     # changing to the combination with highest ICL value
     Z <- update_Z_of_obs_i(Z, G, i, ICL_h)
     Z <- check_group_reduction(Z, G)
-    # if the group has reduced reduce G val
-    if(ncol(Z) != ncol(Z1)) {
-      G = G - 1
-      i = 1
+
+    if(group_reduced) {
+      G <- G - 1
+      i <- 0
     }
   }
+  i <- i + 1
 }
 
 ICL_val_new <- icl_calc_func(alpha, beta, G, Y, Z)
 ICL_val_new
 View(Z)
 length(Z[, 4][Z[, 4] == TRUE])
+G
+ncol(Z)

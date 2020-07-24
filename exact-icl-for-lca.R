@@ -27,8 +27,16 @@ icl_calc_func <- function(alpha, beta, G, Y, Z) {
   
   # calc alpha and beta of groups based on Y and Z
   for(j in 1:r){
-    alpha_gj[, j] <- alpha + apply(Y[, j] * Z, 2, sum)
-    beta_gj[, j] <- beta + apply( (1 - Y[, j]) * Z, 2, sum)
+    for(g in 1:G) {
+      temp_alpha <- 0
+      temp_beta <- 0
+      for(i in 1:nrow(Z)) {
+        temp_alpha <- temp_alpha + Z[i, g] * Y[i, j]
+        temp_beta <- temp_beta + Z[i, g] * (1- Y[i, j])
+      }
+      alpha_gj[g, j] <- alpha + temp_alpha
+      beta_gj[g, j] <- beta + temp_beta
+    }
   }
   
   # log beta fun
@@ -104,88 +112,116 @@ check_group_reduction <- function(Z, G) {
   Z
 }
 
-icl_calc_func(alpha, beta, G, Y, Z)
-
-i <- 1
-while(i <= nrow(Z)) {
-
+ICL_fit <- function(i) {
+  while(i <= nrow(Z)) {
+    
     if (G == 2) {
-    ICL_val1 <- icl_calc_func(alpha, beta, G, Y, Z)
-    Z <- update_Z_of_obs_i(Z, G, i)
-    
-    ICL_val2 <- icl_calc_func(alpha, beta, G, Y, Z)
-    if(ICL_val2 - ICL_val1 > 0) {
-      # DO nothing keep the changed Z
-    } else {
-      # revert it back to original
+      ICL_val1 <- icl_calc_func(alpha, beta, G, Y, Z)
       Z <- update_Z_of_obs_i(Z, G, i)
-    }
-  } else {
-    # original ICL value without any changes
-    ICL_val <- icl_calc_func(alpha, beta, G, Y, Z)
-    # to find which value in the ith observation has 1
-    # and store that in g
-    for(j in 1:G) {
-      if(Z[i,j] == 1) {
-        g <- c(j)
-      }
-    }
-    h_vals <- c(1:G)
-    h_vals <- setdiff(h_vals, g)
-    
-    ICL_max <- ICL_val
-    ICL_h <- g
-    
-    for(h in h_vals) {
-      # changing the cluster of ith obervation from group g to group h
-      Z <- update_Z_of_obs_i(Z, G, i, h)
-      # check if the groups have reduced and del Z[, col] of that group
-      Z1 <- check_group_reduction(Z, G)
       
+      ICL_val2 <- icl_calc_func(alpha, beta, G, Y, Z)
+      if(ICL_val2 - ICL_val1 > 0) {
+        # DO nothing keep the changed Z
+      } else {
+        # revert it back to original
+        Z <- update_Z_of_obs_i(Z, G, i)
+      }
+    } else {
+      # original ICL value without any changes
+      ICL_val <- icl_calc_func(alpha, beta, G, Y, Z)
+      # to find which value in the ith observation has 1
+      # and store that in g
+      for(j in 1:G) {
+        if(Z[i,j] == 1) {
+          g <- c(j)
+        }
+      }
+      h_vals <- c(1:G)
+      h_vals <- setdiff(h_vals, g)
+      
+      ICL_max <- ICL_val
+      ICL_h <- g
+      
+      for(h in h_vals) {
+        # changing the cluster of ith obervation from group g to group h
+        Z <- update_Z_of_obs_i(Z, G, i, h)
+        # check if the groups have reduced and del Z[, col] of that group
+        Z1 <- check_group_reduction(Z, G)
+        
+        # if the group has reduced reduce G val
+        if(ncol(Z) != ncol(Z1)) {
+          G <- G - 1
+        }
+        
+        # calculating ICL value of the new combination
+        ICL_val_of_h <- icl_calc_func(alpha, beta, G, Y, Z1)
+        
+        # reverting back to original combination
+        if(ncol(Z) != ncol(Z1)) {
+          G <- G + 1
+        } else {
+          Z <- update_Z_of_obs_i(Z, G, i, g)
+        }
+        
+        ICL_del <- ICL_val_of_h - ICL_max
+        
+        if(ICL_del > 0) {
+          ICL_max <- ICL_val_of_h
+          ICL_h <- h
+        }
+      }
+      group_reduced <- FALSE
       # if the group has reduced reduce G val
       if(ncol(Z) != ncol(Z1)) {
+        group_reduced <- TRUE
+      }
+      # changing to the combination with highest ICL value
+      Z <- update_Z_of_obs_i(Z, G, i, ICL_h)
+      Z <- check_group_reduction(Z, G)
+      
+      if(group_reduced) {
         G <- G - 1
-      }
-      
-      # calculating ICL value of the new combination
-      ICL_val_of_h <- icl_calc_func(alpha, beta, G, Y, Z1)
-      
-      # reverting back to original combination
-      if(ncol(Z) != ncol(Z1)) {
-        G <- G + 1
-      } else {
-        Z <- update_Z_of_obs_i(Z, G, i, g)
-      }
-      
-      ICL_del <- ICL_val_of_h - ICL_max
-      
-      if(ICL_del > 0) {
-        ICL_max <- ICL_val_of_h
-        ICL_h <- h
+        i <- 0
       }
     }
-    group_reduced <- FALSE
-    # if the group has reduced reduce G val
-    if(ncol(Z) != ncol(Z1)) {
-      group_reduced <- TRUE
-    }
-    # changing to the combination with highest ICL value
-    Z <- update_Z_of_obs_i(Z, G, i, ICL_h)
-    Z <- check_group_reduction(Z, G)
-
-    if(group_reduced) {
-      G <- G - 1
-      i <- 0
-    }
+    i <- i + 1
+    #print(i)
+    #print(G)
   }
-  i <- i + 1
-  print(i)
-  print(G)
+  return(list("alpha"=alpha, "beta"=beta, "G"=G, "Z"=Z))
 }
 
-ICL_val_new <- icl_calc_func(alpha, beta, G, Y, Z)
-ICL_val_new
-#View(Z)
+ICL_old <- icl_calc_func(alpha, beta, G, Y, Z)
+ICL_old
+
+ICL_val_new <- 0
+
+samp_ind <- sample(1:nrow(Z))
+iter <- 1
+while(TRUE){
+  results<-ICL_fit(samp_ind[iter])
+  
+  alpha <- results$alpha
+  beta <- results$beta
+  G <- results$G
+  Z <- results$Z
+  
+  ICL_old <- ICL_val_new
+  ICL_val_new <- icl_calc_func(alpha, beta, G, Y, Z)
+  
+  print(ICL_val_new)
+  
+  iter <- iter + 1
+  
+  if(ICL_old == ICL_val_new){
+    break
+  }
+  if(iter==10){
+    break
+  }
+}
+
+#Z#View(Z)
 #length(Z[, 4][Z[, 4] == TRUE])
 G
-ncol(Z)
+#ncol(Z)

@@ -6,7 +6,8 @@ data(Alzheimer)
 ## set CONSTANTS 
 alpha <- 1
 beta <- 1
-G <- as.integer(readline(prompt="Enter the number of groups: "))
+# G <- as.integer(readline(prompt="Enter the number of groups: "))
+G <- 9
 
 # LCA fit
 fit <- blca.em(Alzheimer, G)
@@ -112,7 +113,7 @@ check_group_reduction <- function(Z, G) {
   Z
 }
 
-ICL_fit <- function(samp_df) {
+group_reduction <- function(samp_df) {
   for(i in samp_df) {
     
     if (G == 2) {
@@ -187,49 +188,106 @@ ICL_fit <- function(samp_df) {
     #print(i)
     #print(G)
   }
-  return(list("alpha"=alpha, "beta"=beta, "G"=G, "Z"=Z))
+  return(list("G"=G, "Z"=Z))
 }
 
-ICL_old <- icl_calc_func(alpha, beta, G, Y, Z)
-ICL_old
-
-ICL_val_new <- 0
-
-iter <- 0
-while(TRUE){
-  samp_ind <- sample(1:nrow(Z))
+ICL_fit <- function(Z, Y, alpha, beta) {
+  ICL_old <- icl_calc_func(alpha, beta, G, Y, Z)
+  print(ICL_old)
   
-  #print(samp_ind)
+  ICL_val_new <- 0
   
-  results<-ICL_fit(samp_ind)
-  
-  alpha <- results$alpha
-  beta <- results$beta
-  G <- results$G
-  Z <- results$Z
-  
-  if(ICL_val_new != 0) {
-    ICL_old <- ICL_val_new
+  iter <- 0
+  while(TRUE){
+    samp_ind <- sample(1:nrow(Z))
+    
+    results<-group_reduction(samp_ind)
+    
+    G <- results$G
+    Z <- results$Z
+    
+    if(ICL_val_new != 0) {
+      ICL_old <- ICL_val_new
+    }
+    ICL_val_new <- icl_calc_func(alpha, beta, G, Y, Z)
+    
+    print(ICL_val_new)
+    
+    del <- ICL_val_new - ICL_old
+    
+    #del > 0
+    
+    iter <- iter + 1
+    print(del)
+    if(del <= 0){
+      break
+    }
+    if(iter==10){
+      break
+    }
   }
-  ICL_val_new <- icl_calc_func(alpha, beta, G, Y, Z)
-  
-  print(ICL_val_new)
-  
-  del <- ICL_val_new - ICL_old
-  
-  #del > 0
-  
-  iter <- iter + 1
-  print(del)
-  if(del <= 0){
-    break
-  }
-  if(iter==10){
-    break
-  }
+  return(list("G"=G, "Z"=Z, "ICL_val_new"=ICL_val_new))
 }
+
+check_group_merge <- function(Z, Y, g1, g2, alpha, beta) {
+  
+  Z[ , g1] <- Z[ , g1] + Z[ , g2]
+  Z <- Z[ , -c(g2)]
+  
+  ICL_val_merge <- icl_calc_func(alpha, beta, ncol(Z), Y, Z)
+  
+  return(list("G"=G, "Z"=Z, "ICL_val_merge"=ICL_val_merge))
+}
+
+ICL_group_merge <- function(ICL_val_old, Z, Y, G, alpha, beta) {
+  ICL_max <- ICL_val_old
+  Z_max <- 0
+  g1 <- 0
+  g2 <- 0
+  
+  for(i in 1:(G-1)) {
+    for(j in (i+1):G) {
+      results <- check_group_merge(Z, Y, i, j, alpha, beta)
+      
+      G <- results$G
+      Z1 <- results$Z
+      ICL_val_merge <- results$ICL_val_merge
+      
+      
+      ICL_del <- ICL_val_merge - ICL_max
+      
+      print(ICL_del)
+      
+      if(ICL_del > 0) {
+        ICL_max <- ICL_val_merge
+        g1 <- i
+        g2 <- j
+        Z_max <- Z1
+      }
+    }
+  }
+  return(list("Z_max"=Z_max, "ICL_max"=ICL_max))
+}
+
+
+results<-ICL_fit(Z, Y, alpha, beta)
+
+G <- results$G
+Z <- results$Z
+ICL_val_old <- results$ICL_val_new
+
+results <- ICL_group_merge(ICL_val_old, Z, Y, G, alpha, beta)
+
+ICL_max <- results$ICL_max
+Z_max <- results$Z_max
+
+print(ICL_max)
+print(ncol(Z_max))
+
 
 #Z#View(Z)
 #length(Z[, 4][Z[, 4] == TRUE])
 G
 #ncol(Z)
+
+

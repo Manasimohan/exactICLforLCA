@@ -112,8 +112,8 @@ check_group_reduction <- function(Z, G) {
   Z
 }
 
-ICL_fit <- function(i) {
-  while(i <= nrow(Z)) {
+ICL_fit <- function(samp_df) {
+  for(i in samp_df) {
     
     if (G == 2) {
       ICL_val1 <- icl_calc_func(alpha, beta, G, Y, Z)
@@ -184,7 +184,6 @@ ICL_fit <- function(i) {
         i <- 0
       }
     }
-    i <- i + 1
     #print(i)
     #print(G)
   }
@@ -196,24 +195,33 @@ ICL_old
 
 ICL_val_new <- 0
 
-samp_ind <- sample(1:nrow(Z))
-iter <- 1
+iter <- 0
 while(TRUE){
-  results<-ICL_fit(samp_ind[iter])
+  samp_ind <- sample(1:nrow(Z))
+  
+  #print(samp_ind)
+  
+  results<-ICL_fit(samp_ind)
   
   alpha <- results$alpha
   beta <- results$beta
   G <- results$G
   Z <- results$Z
   
-  ICL_old <- ICL_val_new
+  if(ICL_val_new != 0) {
+    ICL_old <- ICL_val_new
+  }
   ICL_val_new <- icl_calc_func(alpha, beta, G, Y, Z)
   
   print(ICL_val_new)
   
-  iter <- iter + 1
+  del <- ICL_val_new - ICL_old
   
-  if(ICL_old == ICL_val_new){
+  #del > 0
+  
+  iter <- iter + 1
+  print(del)
+  if(del <= 0){
     break
   }
   if(iter==10){

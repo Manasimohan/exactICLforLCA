@@ -6,8 +6,8 @@ data(Alzheimer)
 ## set CONSTANTS 
 alpha <- 1
 beta <- 1
-# G <- as.integer(readline(prompt="Enter the number of groups: "))
-G <- 9
+G <- as.integer(readline(prompt="Enter the number of groups: "))
+# G <- 9
 
 # LCA fit
 fit <- blca.em(Alzheimer, G)
@@ -113,7 +113,7 @@ check_group_reduction <- function(Z, G) {
   Z
 }
 
-group_reduction <- function(samp_df) {
+group_reduction <- function(samp_df, Z, G) {
   for(i in samp_df) {
     
     if (G == 2) {
@@ -150,7 +150,7 @@ group_reduction <- function(samp_df) {
         Z1 <- check_group_reduction(Z, G)
         
         # if the group has reduced reduce G val
-        if(ncol(Z) != ncol(Z1)) {
+        if(ncol(Z) > ncol(Z1)) {
           G <- G - 1
         }
         
@@ -158,7 +158,7 @@ group_reduction <- function(samp_df) {
         ICL_val_of_h <- icl_calc_func(alpha, beta, G, Y, Z1)
         
         # reverting back to original combination
-        if(ncol(Z) != ncol(Z1)) {
+        if(ncol(Z) > ncol(Z1)) {
           G <- G + 1
         } else {
           Z <- update_Z_of_obs_i(Z, G, i, g)
@@ -173,7 +173,7 @@ group_reduction <- function(samp_df) {
       }
       group_reduced <- FALSE
       # if the group has reduced reduce G val
-      if(ncol(Z) != ncol(Z1)) {
+      if(ncol(Z) > ncol(Z1)) {
         group_reduced <- TRUE
       }
       # changing to the combination with highest ICL value
@@ -182,26 +182,24 @@ group_reduction <- function(samp_df) {
       
       if(group_reduced) {
         G <- G - 1
-        i <- 0
       }
     }
-    #print(i)
-    #print(G)
   }
   return(list("G"=G, "Z"=Z))
 }
 
-ICL_fit <- function(Z, Y, alpha, beta) {
+ICL_fit <- function(Z, Y, G, alpha, beta) {
   ICL_old <- icl_calc_func(alpha, beta, G, Y, Z)
-  print(ICL_old)
   
   ICL_val_new <- 0
+  Z_max <- Z
+  G_max <- G
   
   iter <- 0
   while(TRUE){
     samp_ind <- sample(1:nrow(Z))
     
-    results<-group_reduction(samp_ind)
+    results<-group_reduction(samp_ind, Z, G)
     
     G <- results$G
     Z <- results$Z
@@ -211,22 +209,19 @@ ICL_fit <- function(Z, Y, alpha, beta) {
     }
     ICL_val_new <- icl_calc_func(alpha, beta, G, Y, Z)
     
-    print(ICL_val_new)
-    
     del <- ICL_val_new - ICL_old
     
-    #del > 0
-    
     iter <- iter + 1
-    print(del)
     if(del <= 0){
       break
     }
     if(iter==10){
       break
     }
+    Z_max <- Z
+    G_max <- G
   }
-  return(list("G"=G, "Z"=Z, "ICL_val_new"=ICL_val_new))
+  return(list("G_max"=G_max, "Z_max"=Z_max, "ICL_old"=ICL_old))
 }
 
 check_group_merge <- function(Z, Y, g1, g2, alpha, beta) {
@@ -236,27 +231,30 @@ check_group_merge <- function(Z, Y, g1, g2, alpha, beta) {
   
   ICL_val_merge <- icl_calc_func(alpha, beta, ncol(Z), Y, Z)
   
-  return(list("G"=G, "Z"=Z, "ICL_val_merge"=ICL_val_merge))
+  return(list("Z"=Z, "ICL_val_merge"=ICL_val_merge))
 }
 
-ICL_group_merge <- function(ICL_val_old, Z, Y, G, alpha, beta) {
-  ICL_max <- ICL_val_old
+ICL_group_merge <- function(ICL_val, Z, Y, G, alpha, beta) {
+  ICL_max <- ICL_val
   Z_max <- 0
   g1 <- 0
   g2 <- 0
+  
+  if(G == 2) {
+    Z_max <- Z
+    return(list("Z_max"=Z_max, "ICL_max"=ICL_max))
+  }
   
   for(i in 1:(G-1)) {
     for(j in (i+1):G) {
       results <- check_group_merge(Z, Y, i, j, alpha, beta)
       
-      G <- results$G
       Z1 <- results$Z
       ICL_val_merge <- results$ICL_val_merge
       
       
       ICL_del <- ICL_val_merge - ICL_max
-      
-      print(ICL_del)
+  
       
       if(ICL_del > 0) {
         ICL_max <- ICL_val_merge
@@ -270,24 +268,43 @@ ICL_group_merge <- function(ICL_val_old, Z, Y, G, alpha, beta) {
 }
 
 
-results<-ICL_fit(Z, Y, alpha, beta)
+ICL_merge_fit <- function(Z, Y, alpha, beta) {
+  ICL_val_max <- 0
+  Z_max <- 0
+  iter <- 0
+  while(TRUE){
+    results<-ICL_fit(Z, Y, G, alpha, beta)
+    
+    G <- results$G_max
+    Z <- results$Z_max
+    ICL_val <- results$ICL_old
 
-G <- results$G
-Z <- results$Z
-ICL_val_old <- results$ICL_val_new
+    res <- ICL_group_merge(ICL_val, Z, Y, G, alpha, beta)
+    
+    ICL_val <- res$ICL_max
+    Z_merge <- res$Z_max
+    
+    iter <- iter + 1
+    Z <- Z_merge
+    
+    if(G == ncol(Z_merge)){
+      ICL_val_max <- ICL_val
+      Z_max <- Z_merge
+      break
+    }
+    if(iter==10){
+      ICL_val_max <- ICL_val
+      Z_max <- Z_merge
+      break
+    }
+    G <- ncol(Z)
+  }
+  return(list("Z_max"=Z_max, "ICL_val_max"=ICL_val_max))
+}
 
-results <- ICL_group_merge(ICL_val_old, Z, Y, G, alpha, beta)
+res_final <- ICL_merge_fit(Z, Y, alpha, beta)
+ICL_val <- res_final$ICL_val_max
+Z <- res_final$Z_max
 
-ICL_max <- results$ICL_max
-Z_max <- results$Z_max
-
-print(ICL_max)
-print(ncol(Z_max))
-
-
-#Z#View(Z)
-#length(Z[, 4][Z[, 4] == TRUE])
-G
-#ncol(Z)
-
-
+print(ICL_val)
+print(ncol(Z))

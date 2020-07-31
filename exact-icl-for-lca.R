@@ -4,10 +4,10 @@ library(BayesLCA)
 data(Alzheimer)
 
 ## set CONSTANTS
-alpha <- 1
-beta <- 1
+alpha_var <- 1
+beta_var <- 1
 # G <- as.integer(readline(prompt="Enter the number of groups: "))
-G <- 9
+G <- 3
 
 # LCA fit
 fit <- blca.em(Alzheimer, G)
@@ -15,7 +15,7 @@ Z <- unMAP(MAP(Zscore(Alzheimer, fit)))
 
 Y <- as.matrix(Alzheimer)
 
-ICLCalc <- function(alpha, beta, G, Y, Z) {
+ICLCalc <- function(alpha_var, beta_var, G, Y, Z) {
   # set variables
   delta <- rep(1 , G)
   r <- ncol(Y)
@@ -35,8 +35,8 @@ ICLCalc <- function(alpha, beta, G, Y, Z) {
         temp_alpha <- temp_alpha + Z[i, g] * Y[i, j]
         temp_beta <- temp_beta + Z[i, g] * (1- Y[i, j])
       }
-      alpha_gj[g, j] <- alpha + temp_alpha
-      beta_gj[g, j] <- beta + temp_beta
+      alpha_gj[g, j] <- alpha_var + temp_alpha
+      beta_gj[g, j] <- beta_var + temp_beta
     }
   }
 
@@ -61,7 +61,7 @@ ICLCalc <- function(alpha, beta, G, Y, Z) {
   }
 
   # second eqn denomenarator value
-  b_denom <- G * r * lbeta(alpha, beta)
+  b_denom <- G * r * lbeta(alpha_var, beta_var)
 
   # second eqn
   sec_var <- b_num - b_denom
@@ -117,10 +117,10 @@ groupReduction <- function(samp_df, Z, G) {
   for(i in samp_df) {
 
     if (G == 2) {
-      ICL_val1 <- ICLCalc(alpha, beta, G, Y, Z)
+      ICL_val1 <- ICLCalc(alpha_var, beta_var, G, Y, Z)
       Z <- updateZ(Z, G, i)
 
-      ICL_val2 <- ICLCalc(alpha, beta, G, Y, Z)
+      ICL_val2 <- ICLCalc(alpha_var, beta_var, G, Y, Z)
       if(ICL_val2 - ICL_val1 > 0) {
         # DO nothing keep the changed Z
       } else {
@@ -129,7 +129,7 @@ groupReduction <- function(samp_df, Z, G) {
       }
     } else {
       # original ICL value without any changes
-      ICL_val <- ICLCalc(alpha, beta, G, Y, Z)
+      ICL_val <- ICLCalc(alpha_var, beta_var, G, Y, Z)
       # to find which value in the ith observation has 1
       # and store that in g
       for(j in 1:G) {
@@ -155,7 +155,7 @@ groupReduction <- function(samp_df, Z, G) {
         }
 
         # calculating ICL value of the new combination
-        ICL_val_of_h <- ICLCalc(alpha, beta, G, Y, Z1)
+        ICL_val_of_h <- ICLCalc(alpha_var, beta_var, G, Y, Z1)
 
         # reverting back to original combination
         if(ncol(Z) > ncol(Z1)) {
@@ -188,8 +188,8 @@ groupReduction <- function(samp_df, Z, G) {
   return(list("G"=G, "Z"=Z))
 }
 
-ICLSweep <- function(Z, Y, G, alpha, beta) {
-  ICL_old <- ICLCalc(alpha, beta, G, Y, Z)
+ICLSweep <- function(Z, Y, G, alpha_var, beta_var) {
+  ICL_old <- ICLCalc(alpha_var, beta_var, G, Y, Z)
 
   ICL_val_new <- 0
   Z_max <- Z
@@ -207,7 +207,7 @@ ICLSweep <- function(Z, Y, G, alpha, beta) {
     if(ICL_val_new != 0) {
       ICL_old <- ICL_val_new
     }
-    ICL_val_new <- ICLCalc(alpha, beta, G, Y, Z)
+    ICL_val_new <- ICLCalc(alpha_var, beta_var, G, Y, Z)
 
     del <- ICL_val_new - ICL_old
 
@@ -224,17 +224,17 @@ ICLSweep <- function(Z, Y, G, alpha, beta) {
   return(list("G_max"=G_max, "Z_max"=Z_max, "ICL_old"=ICL_old))
 }
 
-checkGroupMerge <- function(Z, Y, g1, g2, alpha, beta) {
+checkGroupMerge <- function(Z, Y, g1, g2, alpha_var, beta_var) {
 
   Z[ , g1] <- Z[ , g1] + Z[ , g2]
   Z <- Z[ , -c(g2)]
 
-  ICL_val_merge <- ICLCalc(alpha, beta, ncol(Z), Y, Z)
+  ICL_val_merge <- ICLCalc(alpha_var, beta_var, ncol(Z), Y, Z)
 
   return(list("Z"=Z, "ICL_val_merge"=ICL_val_merge))
 }
 
-ICLGroupMerge <- function(ICL_val, Z, Y, G, alpha, beta) {
+ICLGroupMerge <- function(ICL_val, Z, Y, G, alpha_var, beta_var) {
   ICL_max <- ICL_val
   Z_max <- 0
   g1 <- 0
@@ -247,7 +247,7 @@ ICLGroupMerge <- function(ICL_val, Z, Y, G, alpha, beta) {
 
   for(i in 1:(G-1)) {
     for(j in (i+1):G) {
-      results <- checkGroupMerge(Z, Y, i, j, alpha, beta)
+      results <- checkGroupMerge(Z, Y, i, j, alpha_var, beta_var)
 
       Z1 <- results$Z
       ICL_val_merge <- results$ICL_val_merge
@@ -268,18 +268,18 @@ ICLGroupMerge <- function(ICL_val, Z, Y, G, alpha, beta) {
 }
 
 
-ICLFit <- function(Z, Y, alpha, beta) {
+ICLFit <- function(Z, Y, G, alpha_var, beta_var) {
   ICL_val_max <- 0
   Z_max <- 0
   iter <- 0
   while(TRUE){
-    results<-ICLSweep(Z, Y, G, alpha, beta)
+    results<-ICLSweep(Z, Y, G, alpha_var, beta_var)
 
     G <- results$G_max
     Z <- results$Z_max
     ICL_val <- results$ICL_old
 
-    res <- ICLGroupMerge(ICL_val, Z, Y, G, alpha, beta)
+    res <- ICLGroupMerge(ICL_val, Z, Y, G, alpha_var, beta_var)
 
     ICL_val <- res$ICL_max
     Z_merge <- res$Z_max
@@ -302,7 +302,7 @@ ICLFit <- function(Z, Y, alpha, beta) {
   return(list("Z_max"=Z_max, "ICL_val_max"=ICL_val_max))
 }
 
-res_final <- ICLFit(Z, Y, alpha, beta)
+res_final <- ICLFit(Z, Y, G, alpha_var, beta_var)
 ICL_val <- res_final$ICL_val_max
 Z <- res_final$Z_max
 

@@ -11,11 +11,12 @@ ICLFit <- function(Z, Y, G, alpha_var, beta_var) {
   Z_max <- 0
   iter <- 0
   while(TRUE){
-    results<-ICLSweep(Z, Y, G, alpha_var, beta_var)
+    results <- ICLSweep(Z, Y, G, alpha_var, beta_var)
 
     G <- results$G_max
     Z <- results$Z_max
     ICL_val <- results$ICL_old
+    ICL_original <- results$ICL_original
 
     res <- ICLGroupMerge(ICL_val, Z, Y, G, alpha_var, beta_var)
 
@@ -37,5 +38,5 @@ ICLFit <- function(Z, Y, G, alpha_var, beta_var) {
     }
     G <- ncol(Z)
   }
-  return(list("Z_max"=Z_max, "ICL_val_max"=ICL_val_max))
+  return(list("Z_max"=Z_max, "ICL_val_max"=ICL_val_max, "ICL_original"=ICL_original))
 }

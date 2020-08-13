@@ -1,5 +1,10 @@
 source('R\\ICL.Calc.R')
 
+#' ICL group reduction
+#'
+#' @param Z, G, sample
+#' @return G, Z
+
 updateZ <- function(Z, G, i, t = 2) {
   if(G == 2) {
     for (j in 1:G) {
@@ -43,7 +48,6 @@ checkGroupReduction <- function(Z, G) {
 
 groupReduction <- function(samp_df, Z, G) {
   for(i in samp_df) {
-
     if (G == 2) {
       ICL_val1 <- ICLCalc(alpha_var, beta_var, G, Y, Z)
       Z <- updateZ(Z, G, i)

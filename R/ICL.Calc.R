@@ -1,3 +1,8 @@
+#' ICL Calculation
+#'
+#' @param Z, Y, G, alpha and beta
+#' @return ICL
+
 ICLCalc <- function(alpha_var, beta_var, G, Y, Z) {
   # set variables
   delta <- rep(1 , G)

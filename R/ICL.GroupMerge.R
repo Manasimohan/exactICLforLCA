@@ -1,5 +1,10 @@
 source('R\\ICL.Calc.R')
 
+#' ICL Sweep
+#'
+#' @param ICL value, Z, Y, G, alpha and beta
+#' @return Z_max, ICL_max
+#'
 checkGroupMerge <- function(Z, Y, g1, g2, alpha_var, beta_var) {
 
   Z[ , g1] <- Z[ , g1] + Z[ , g2]

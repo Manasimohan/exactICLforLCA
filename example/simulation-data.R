@@ -1,31 +1,81 @@
 library(BayesLCA)
 library(exactICLforLCA)
+library(flexclust)
 
-# Generate data
-type1 <- c(0.9, 0.3, 0.4, 0.2, 0.6)
-type2 <- c(0.1, 0.7, 0.6, 0.8, 0.4)
-X<- rlca(500, rbind(type1, type2), c(0.7, 0.3))
+rlca_fun <- function (n, itemprob = 0.5, classprob = 1, fit = NULL)
+{
+  if (is.null(fit)) {
+    itemprob <- as.matrix(itemprob)
+    G <- nrow(itemprob)
+    M <- ncol(itemprob)
+  }
+  else {
+    itemprob <- fit$itemprob
+    classprob <- fit$classprob
+    G <- nrow(itemprob)
+    M <- ncol(itemprob)
+  }
+  x <- matrix(runif(n * M), nrow = n)
+  z <- rep(0, n)
+  classvec <- as.vector(rmultinom(1, n, prob = classprob))
+  ind <- c(0, cumsum(classvec))
+  for (g in 1:G){
+    x[(ind[g] + 1):ind[g + 1], ] <- t(t(x[(ind[g] + 1):ind[g + 1], ]) < itemprob[g, ]) * 1
+    z[(ind[g] + 1):ind[g + 1]] <- g
+  }
+  return(list(x=x, z=z))
+}
 
-## set CONSTANTS
+# set CONSTANTS
 alpha_var <- 1
 beta_var <- 1
-# G <- as.integer(readline(prompt="Enter the number of groups: "))
+delta_var <- 1
 G <- 3
+n <- 1000
+
+# Generate data
+type1 <- c(0.9, 0.3, 0.7,0.1)
+type2 <- c(0.1, 0.7, 0.3,0.9)
+sim_data_list <- rlca_fun(n, rbind(type1,type2), c(0.6,0.4))
+
+# splitting data into x and z
+x_sim <- sim_data_list$x
+z_sim <- sim_data_list$z
+
+# splitting X based on groups
+x_1 <- x_sim[z_sim == 1, ]
+x_2 <- x_sim[z_sim == 2, ]
+
+# finding means of X groups
+#apply(x_1, 2, mean)
+#apply(x_2, 2, mean)
+#table(z_sim)/length(z_sim)
 
 # LCA fit
-fit <- blca.em(X, G)
-Z <- unMAP(MAP(Zscore(X, fit)))
+fit_new <- blca.em(x_sim, G )
+Z_new <- MAP(Zscore(x_sim, fit_new))
 
+# splitting Z based on groups
+#X_1 <- x_sim[Z_new == 1, ]
+#X_2 <- x_sim[Z_new == 2, ]
 
-Y <- as.matrix(X)
+# finding means of Z groups
+#apply(X_1, 2, mean)
+#apply(X_2, 2, mean)
+#table(Z_new)/length(Z_new)
 
-res_final <- ICLFit(Z, Y, G, alpha_var, beta_var)
-ICL_val <- res_final$ICL_val_max
-Z <- res_final$Z_max
-ICL_original <- res_final$ICL_original
+# ICL computation
+Y <- as.matrix(x_sim)
+Z <- unMAP(Z_new)
 
-print(paste('Oringinal ICL value : ', format(ICL_original, digits = 5)))
-print(paste("Incial number of clusters : ", G))
-print(paste("ICL value post appling sweep and merge : ", format(ICL_val, digits = 5)))
-print(paste("Number of clusters post processing : ", ncol(Z)))
+#Outputs
 
+#Obtaing ICL for Z matrix
+res_final <- ICLFit(Z, Y, G, alpha_var, beta_var, delta_var)
+ICLsummary()
+
+Z_new <- MAP(res_final$Z_max)
+
+#Comparing the two matrix
+table(Z_new, z_sim)
+randIndex(Z_new, z_sim)

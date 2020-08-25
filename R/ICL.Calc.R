@@ -3,9 +3,9 @@
 #' @param Z, Y, G, alpha and beta
 #' @return ICL
 
-ICLCalc <- function(alpha_var, beta_var, G, Y, Z) {
+ICLCalc <- function(alpha_var, beta_var, G, Y, Z, delta_var) {
   # set variables
-  delta <- rep(1 , G)
+  delta <- rep(delta_var , G)
   r <- ncol(Y)
 
   # initalise alpha and beta matrix

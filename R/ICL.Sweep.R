@@ -6,8 +6,8 @@ source('R\\ICL.GroupReduction.R')
 #' @param Z, Y, G, alpha and beta
 #' @return G_max, Z_max, ICL_old
 #'
-ICLSweep <- function(Z, Y, G, alpha_var, beta_var) {
-  ICL_old <- ICLCalc(alpha_var, beta_var, G, Y, Z)
+ICLSweep <- function(Z, Y, G, alpha_var, beta_var, delta_var) {
+  ICL_old <- ICLCalc(alpha_var, beta_var, G, Y, Z, delta_var)
   ICL_original <- ICL_old
 
   ICL_val_new <- 0
@@ -26,7 +26,7 @@ ICLSweep <- function(Z, Y, G, alpha_var, beta_var) {
     if(ICL_val_new != 0) {
       ICL_old <- ICL_val_new
     }
-    ICL_val_new <- ICLCalc(alpha_var, beta_var, G, Y, Z)
+    ICL_val_new <- ICLCalc(alpha_var, beta_var, G, Y, Z, delta_var)
 
     del <- ICL_val_new - ICL_old
 

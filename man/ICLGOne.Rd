@@ -4,7 +4,7 @@
 \alias{ICLGOne}
 \title{ICL GOne}
 \usage{
-ICLGOne(Z, Y, G, alpha_var, beta_var)
+ICLGOne(Z, Y, G, alpha_var, beta_var, delta_var)
 }
 \arguments{
 \item{Z, }{Y, G, alpha and beta}

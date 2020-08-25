@@ -49,10 +49,10 @@ checkGroupReduction <- function(Z, G) {
 groupReduction <- function(samp_df, Z, G) {
   for(i in samp_df) {
     if (G == 2) {
-      ICL_val1 <- ICLCalc(alpha_var, beta_var, G, Y, Z)
+      ICL_val1 <- ICLCalc(alpha_var, beta_var, G, Y, Z, delta_var)
       Z <- updateZ(Z, G, i)
 
-      ICL_val2 <- ICLCalc(alpha_var, beta_var, G, Y, Z)
+      ICL_val2 <- ICLCalc(alpha_var, beta_var, G, Y, Z, delta_var)
       if(ICL_val2 - ICL_val1 > 0) {
         # DO nothing keep the changed Z
       } else {
@@ -61,7 +61,7 @@ groupReduction <- function(samp_df, Z, G) {
       }
     } else {
       # original ICL value without any changes
-      ICL_val <- ICLCalc(alpha_var, beta_var, G, Y, Z)
+      ICL_val <- ICLCalc(alpha_var, beta_var, G, Y, Z, delta_var)
       # to find which value in the ith observation has 1
       # and store that in g
       for(j in 1:G) {
@@ -87,7 +87,7 @@ groupReduction <- function(samp_df, Z, G) {
         }
 
         # calculating ICL value of the new combination
-        ICL_val_of_h <- ICLCalc(alpha_var, beta_var, G, Y, Z1)
+        ICL_val_of_h <- ICLCalc(alpha_var, beta_var, G, Y, Z1, delta_var)
 
         # reverting back to original combination
         if(ncol(Z) > ncol(Z1)) {

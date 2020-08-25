@@ -5,17 +5,17 @@ source('R\\ICL.Calc.R')
 #' @param ICL value, Z, Y, G, alpha and beta
 #' @return Z_max, ICL_max
 #'
-checkGroupMerge <- function(Z, Y, g1, g2, alpha_var, beta_var) {
+checkGroupMerge <- function(Z, Y, g1, g2, alpha_var, beta_var, delta_var) {
 
   Z[ , g1] <- Z[ , g1] + Z[ , g2]
   Z <- Z[ , -c(g2)]
 
-  ICL_val_merge <- ICLCalc(alpha_var, beta_var, ncol(Z), Y, Z)
+  ICL_val_merge <- ICLCalc(alpha_var, beta_var, ncol(Z), Y, Z, delta_var)
 
   return(list("Z"=Z, "ICL_val_merge"=ICL_val_merge))
 }
 
-ICLGroupMerge <- function(ICL_val, Z, Y, G, alpha_var, beta_var) {
+ICLGroupMerge <- function(ICL_val, Z, Y, G, alpha_var, beta_var, delta_var) {
   ICL_max <- ICL_val
   Z_max <- 0
   g1 <- 0
@@ -28,7 +28,7 @@ ICLGroupMerge <- function(ICL_val, Z, Y, G, alpha_var, beta_var) {
 
   for(i in 1:(G-1)) {
     for(j in (i+1):G) {
-      results <- checkGroupMerge(Z, Y, i, j, alpha_var, beta_var)
+      results <- checkGroupMerge(Z, Y, i, j, alpha_var, beta_var, delta_var)
 
       Z1 <- results$Z
       ICL_val_merge <- results$ICL_val_merge

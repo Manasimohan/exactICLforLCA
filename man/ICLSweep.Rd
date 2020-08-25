@@ -4,7 +4,7 @@
 \alias{ICLSweep}
 \title{ICL Sweep}
 \usage{
-ICLSweep(Z, Y, G, alpha_var, beta_var)
+ICLSweep(Z, Y, G, alpha_var, beta_var, delta_var)
 }
 \arguments{
 \item{Z, }{Y, G, alpha and beta}

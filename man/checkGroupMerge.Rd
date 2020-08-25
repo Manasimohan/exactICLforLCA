@@ -4,7 +4,7 @@
 \alias{checkGroupMerge}
 \title{ICL Sweep}
 \usage{
-checkGroupMerge(Z, Y, g1, g2, alpha_var, beta_var)
+checkGroupMerge(Z, Y, g1, g2, alpha_var, beta_var, delta_var)
 }
 \arguments{
 \item{ICL}{value, Z, Y, G, alpha and beta}

@@ -1,5 +1,6 @@
 source('R\\ICL.Sweep.R')
 source('R\\ICL.GroupMerge.R')
+source('R\\ICL.GOne.R')
 
 pkg <- new.env()
 pkg$results <- list()
@@ -9,7 +10,7 @@ pkg$results <- list()
 #' @param Z, Y, G, alpha and beta
 #' @return ICL
 #' @export
-ICLFit <- function(Z, Y, G, alpha_var, beta_var) {
+ICLFit <- function(Z, Y, G, alpha_var, beta_var, delta_var) {
   ICL_val_max <- 0
   Z_max <- 0
   iter <- 0
@@ -20,7 +21,7 @@ ICLFit <- function(Z, Y, G, alpha_var, beta_var) {
   g_list <- c()
 
   while(TRUE){
-    results <- ICLSweep(Z, Y, G, alpha_var, beta_var)
+    results <- ICLSweep(Z, Y, G, alpha_var, beta_var, delta_var)
 
     if(iter == 0) {
       ICL_original <- results$ICL_original
@@ -33,7 +34,7 @@ ICLFit <- function(Z, Y, G, alpha_var, beta_var) {
     ICL_val <- results$ICL_old
 
 
-    res <- ICLGroupMerge(ICL_val, Z, Y, G, alpha_var, beta_var)
+    res <- ICLGroupMerge(ICL_val, Z, Y, G, alpha_var, beta_var, delta_var)
 
     ICL_val <- res$ICL_max
     Z_merge <- res$Z_max
@@ -67,16 +68,30 @@ ICLFit <- function(Z, Y, G, alpha_var, beta_var) {
   results <- list("Z_max"=Z_max, "ICL_val_max"=ICL_val_max, "ICL_original"=ICL_original, "icl_list"=icl_list, "g_list"=g_list)
   pkg$results <- results
 
+  if(ncol(Z_max) == 2){
+    pkg$GOne <- ICLGOne(Z_max, Y, 2, alpha_var,beta_var, delta_var)
+
+  }
+
   return(results)
 }
 
 ICLsummary <- function() {
   results <- pkg$results
   G <- pkg$G
+  ICL_GOne <- pkg$GOne
   print(paste('Oringinal ICL value : ', format(results$ICL_original, digits = 5)))
   print(paste("Incial number of clusters : ", G))
+  print("ICL Values after each iteration  : ")
+  print(results$icl_list)
+  print("Cluster values after each iteration  : ")
+  print(results$g_list)
   print(paste("ICL value post processing : ", format(results$ICL_val_max, digits = 5)))
   print(paste("Number of clusters post processing : ", ncol(results$Z)))
-  print(results$icl_list)
-  print(results$g_list)
+
+  diff <- ICL_GOne - results$ICL_val_max
+  if(ncol(results$Z) == 2 && diff > 0){
+    print(paste('ICL value for a single cluster : ', format(ICL_GOne, digits = 5)))
+  }
+
 }

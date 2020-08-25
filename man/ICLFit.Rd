@@ -4,7 +4,7 @@
 \alias{ICLFit}
 \title{ICL Fit}
 \usage{
-ICLFit(Z, Y, G, alpha_var, beta_var)
+ICLFit(Z, Y, G, alpha_var, beta_var, delta_var)
 }
 \arguments{
 \item{Z, }{Y, G, alpha and beta}

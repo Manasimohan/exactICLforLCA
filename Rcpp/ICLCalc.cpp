@@ -35,7 +35,7 @@ float applysum_vec(NumericVector vec) {
   float result = 0;
 
   for(int i = 0; i < vec.length(); i++) {
-      result = result + vec[i];
+    result = result + vec[i];
   }
   return result;
 }
@@ -52,40 +52,21 @@ NumericMatrix matsum(NumericMatrix mat1, NumericMatrix mat2) {
   return result;
 }
 
-NumericVector lgammaRcpp(NumericVector v){
-  NumericVector out;
-  out = lgamma(v);
-  return(out);
-}
+float log_beta_vec(NumericMatrix delta) {
+  // for l_num
+  float l_num = applysum_vec(lgamma(delta));
 
-// log beta fun
-NumericVector log_beta_vec(NumericMatrix delta) {
-  NumericMatrix res(delta.nrow(), delta.ncol());
+  // for l_denom
+  float l_denom = lgamma(applysum_vec(delta));
 
-  float l_num;
-  NumericVector l_denom(delta.ncol());
-
-  NumericVector delta_val(10);
-
-  delta_val = lgammaRcpp(delta);
-
-  l_num = applysum_vec(delta_val);
-  l_denom = lgammaRcpp(applysum(delta));
-
-  NumericVector l_temp(l_denom.length());
-  for(int i = 0; i < l_denom.length(); i++) {
-    l_temp[i] = l_num - l_denom[i];
-  }
-
-  return l_num;
-  Rcout<<l_num;
+  return l_num - l_denom;
 }
 
 
 // [[Rcpp::export]]
-NumericMatrix ICLCalc(int alpha_var, int beta_var, int G, NumericMatrix Y, NumericMatrix Z) {
+float ICLCalc(int alpha_var, int beta_var, int G, NumericMatrix Y, NumericMatrix Z, int delta_var) {
 
-  NumericMatrix delta = repeat(1, G);
+  NumericMatrix delta = repeat(delta_var, G);
 
   // find ncol(Y)
   int r = Y.ncol();
@@ -111,15 +92,27 @@ NumericMatrix ICLCalc(int alpha_var, int beta_var, int G, NumericMatrix Y, Numer
     }
   }
 
-  log_beta_vec(delta_prime);
-
   // first eqn
-  //NumericVector first_var = 0;
-    //log_beta_vec(delta_prime) - log_beta_vec(delta)
+  float first_var = log_beta_vec(delta_prime) - log_beta_vec(delta);
 
+  float b_num = 0;
 
+  for (int g = 0; g<G; g++)
+  {
+    for(int j = 0; j<r; j++)
+    {
+      b_num = b_num + R::lbeta(alpha_gj(g,j), beta_gj(g,j));
+    }
+  }
 
-  return delta_prime;
+  // second eqn denomenarator value
+  float b_denom = G * r * R::lbeta(alpha_var, beta_var);
 
-  //return 123.12;
+  // second eqn
+  float sec_var = b_num - b_denom;
+
+  //ICL calc
+  float ICL = first_var + sec_var;
+
+  return ICL;
 }

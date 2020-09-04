@@ -13,3 +13,4 @@ Exact ICL for LCA
 		Enter cluster value 'G' when prompted in the console
 7. Execute "simulation-data.R" file
 		Enter the simulation and sample size 'n'
+		

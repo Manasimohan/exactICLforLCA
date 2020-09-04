@@ -81,11 +81,8 @@ ICLsummary <- function() {
   G <- pkg$G
   ICL_GOne <- pkg$GOne
   print(paste('Oringinal ICL value : ', format(results$ICL_original, digits = 5)))
-  print(paste("Incial number of clusters : ", G))
-  print("ICL Values after each iteration  : ")
-  print(results$icl_list)
-  print("Cluster values after each iteration  : ")
-  print(results$g_list)
+  print(paste("Initial number of clusters : ", G))
+
   print(paste("ICL value post processing : ", format(results$ICL_val_max, digits = 5)))
   print(paste("Number of clusters post processing : ", ncol(results$Z)))
 
@@ -94,4 +91,6 @@ ICLsummary <- function() {
     print(paste('ICL value for a single cluster : ', format(ICL_GOne, digits = 5)))
   }
 
+  print("The cluster and ICL value after each iteration : ")
+  data.frame("Cluster" = results$g_list, "ICL Value" = results$icl_list)
 }

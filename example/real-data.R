@@ -8,8 +8,8 @@ data(Alzheimer)
 alpha_var <- 1
 beta_var <- 1
 delta_var <- 1
-# G <- as.integer(readline(prompt="Enter the number of groups: "))
-G <- 3
+G <- as.integer(readline(prompt="Enter the number of groups: "))
+
 
 # LCA fit
 fit <- blca.em(Alzheimer, G)
